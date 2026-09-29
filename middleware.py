@@ -13,9 +13,16 @@ user_collection = db['user']
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
 
 
-def get_user_from_token(token: str = Depends(oauth2_scheme)):
+def get_user_from_token(token: str):
+    if not token:
+        return None
+
     try:
-        payload = jwt.decode(token, os.environ.get('JWT_SECRET_KEY'), algorithms=[os.environ.get('ALGORITHM')])
+        payload = jwt.decode(
+            token,
+            os.environ.get('JWT_SECRET_KEY'),
+            algorithms=[os.environ.get('ALGORITHM')]
+        )
         return payload.get("sub")
     except jwt.ExpiredSignatureError:
         return None
@@ -28,8 +35,9 @@ class AdminMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/admin"):
             token = request.cookies.get("token")
             user_subject = get_user_from_token(token)
+
             if not user_subject:
                 return RedirectResponse(url='/user/login')
+
         response = await call_next(request)
         return response
-
